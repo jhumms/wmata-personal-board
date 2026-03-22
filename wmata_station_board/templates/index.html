@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>WMATA Station Board</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="board">
+    <h1>WMATA Station Board</h1>
+
+    <label for="station">Select Station:</label>
+    <select id="station">
+      {% for station in stations %}
+        <option value="{{ station }}" {% if station == default_station %}selected{% endif %}>
+          {{ station }}
+        </option>
+      {% endfor %}
+    </select>
+
+    <div id="alerts-container"></div>
+    <div id="departures-container"></div>
+  </div>
+
+  <script>
+    let lastData = {};
+
+    function renderAlerts(alerts) {
+      const container = document.getElementById("alerts-container");
+      container.innerHTML = "";
+      if (!alerts || alerts.length === 0) return;
+
+      const banner = document.createElement("div");
+      banner.classList.add("alerts-banner");
+
+      const title = document.createElement("div");
+      title.classList.add("alerts-title");
+      title.textContent = "⚠ WMATA SERVICE ALERTS";
+      banner.appendChild(title);
+
+      alerts.forEach(alert => {
+        const item = document.createElement("div");
+        item.classList.add("alert-item");
+
+        // Build a friendly line list from "RD;BL;" format
+        const lines = alert.lines_affected
+          ? alert.lines_affected.split(";").map(l => l.trim()).filter(Boolean).join(", ")
+          : "";
+
+        item.innerHTML =
+          `<span class="alert-type">[${alert.type || "ALERT"}]</span>` +
+          (lines ? ` <span class="alert-lines">Lines: ${lines}</span> —` : "") +
+          ` ${alert.description}`;
+
+        banner.appendChild(item);
+      });
+
+      container.appendChild(banner);
+    }
+
+    function groupByLineAndChunk(data) {
+      const grouped = {};
+      data.forEach(item => {
+        const { line } = item;
+        if (!grouped[line]) grouped[line] = [];
+        grouped[line].push(item);
+      });
+
+      const chunked = {};
+      for (const [line, items] of Object.entries(grouped)) {
+        chunked[line] = [];
+        for (let i = 0; i < items.length; i += 2) {
+          chunked[line].push(items.slice(i, i + 2));
+        }
+      }
+      return chunked;
+    }
+
+    function renderGrouped(chunkedData, container) {
+      Object.entries(chunkedData).forEach(([line, rows]) => {
+        rows.forEach(chunk => {
+          const row = document.createElement("div");
+          row.classList.add("columns");
+
+          chunk.forEach(({ label, trains }) => {
+            const col = document.createElement("div");
+            col.classList.add("column");
+
+            const header = document.createElement("h3");
+            header.textContent = label;
+            col.appendChild(header);
+
+            trains.forEach(train => {
+              const rowDiv = document.createElement("div");
+              rowDiv.classList.add("train");
+
+              const paddedMin = train.Min.padStart(3, ' ');
+              const rowKey = `${label}-${train.Line}-${train.Car}-${train.Destination}`;
+
+              // Flip animation when Min changes
+              if (lastData[rowKey] && lastData[rowKey] !== paddedMin) {
+                rowDiv.classList.add("flip");
+              }
+              lastData[rowKey] = paddedMin;
+
+              if (train.Min === "ARR") rowDiv.classList.add("arriving");
+
+              rowDiv.innerHTML = `
+                <span>${train.Line}</span>
+                <span>${train.Car}</span>
+                <span>${train.Destination}</span>
+                <span class="min-value">${paddedMin}</span> min
+              `;
+              col.appendChild(rowDiv);
+            });
+
+            row.appendChild(col);
+          });
+
+          container.appendChild(row);
+        });
+      });
+    }
+
+    function fetchDepartures() {
+      const station = document.getElementById("station").value;
+      fetch(`/get_predictions?station=${encodeURIComponent(station)}`)
+        .then(res => res.json())
+        .then(data => {
+          renderAlerts(data.alerts || []);
+
+          const container = document.getElementById("departures-container");
+          container.innerHTML = "";
+
+          const hasPlatforms = data.Upper || data.Lower;
+
+          if (hasPlatforms) {
+            ["Upper", "Lower"].forEach(platform => {
+              const platformData = data[platform];
+              if (!platformData) return;
+
+              const flatList = [];
+
+              const section = document.createElement("div");
+              section.classList.add("platform-section");
+
+              const title = document.createElement("h2");
+              title.textContent = `${platform} Platform`;
+              section.appendChild(title);
+
+              Object.entries(platformData).forEach(([line, groups]) => {
+                Object.entries(groups).forEach(([group, labels]) => {
+                  Object.entries(labels).forEach(([label, trains]) => {
+                    flatList.push({ line, group, label, trains });
+                  });
+                });
+              });
+
+              const chunked = groupByLineAndChunk(flatList);
+              renderGrouped(chunked, section);
+              container.appendChild(section);
+            });
+          } else {
+            const flatList = [];
+
+            Object.entries(data).forEach(([line, groups]) => {
+              if (line === "alerts" || !groups || typeof groups !== "object" || Array.isArray(groups)) return;
+              Object.entries(groups).forEach(([group, labels]) => {
+                Object.entries(labels).forEach(([label, trains]) => {
+                  flatList.push({ line, group, label, trains });
+                });
+              });
+            });
+
+            const chunked = groupByLineAndChunk(flatList);
+            renderGrouped(chunked, container);
+          }
+        });
+    }
+
+    document.getElementById("station").addEventListener("change", () => {
+      lastData = {}; // Clear cache when switching stations
+      fetchDepartures();
+    });
+
+    setInterval(fetchDepartures, 30000);
+    window.onload = fetchDepartures;
+  </script>
+</body>
+</html>

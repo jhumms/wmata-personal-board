@@ -1,0 +1,36 @@
+# --- Secrets & Config ---
+# Copy config.example.txt to config.txt and fill in your API key
+wmata_station_board/config.txt
+wmata/config.txt
+.env
+
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# --- Logs ---
+*.log
+flask.log
+flask_error.log
+wmata/wmata_monitor.log
+
+# --- Data files (large / auto-generated) ---
+wmata/rail_predictions.csv
+wmata/logged_predictions.json
+wmata/wmata_log.txt
+wmata/current_alerts.json
+# known_stations.json is intentionally committed as the baseline
+
+# --- Editor / OS ---
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

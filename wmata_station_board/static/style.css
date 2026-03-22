@@ -1,0 +1,136 @@
+body {
+  background-color: #000;
+  color: #FFD700;
+  font-family: 'Courier New', Courier, monospace;
+  padding: 2rem;
+  text-align: center;
+}
+
+
+.board {
+  max-width: 1000px;
+  margin: auto;
+}
+
+select {
+  padding: 0.5rem;
+  margin: 1rem 0;
+  font-size: 1rem;
+  background-color: #000;
+  color: #FFD700;
+  border: 1px solid #FFD700;
+}
+
+.platform-section {
+  margin: 2rem 0;
+  border-top: 2px solid #FFD700;
+  padding-top: 1rem;
+}
+
+.platform-section h2,
+.column h3,
+.train,
+.train span {
+  color: #FFD700;
+  font-size: 1.2rem;
+}
+
+.train span.min-value {
+  display: inline-block;
+  width: 3ch;
+  text-align: right;
+}
+
+.columns {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin: 1rem 0;
+  width: 100%;
+}
+
+.column {
+  flex: 0 1 calc(50% - 1rem);
+  max-width: calc(50% - 1rem);
+  background-color: #000;
+  border: 1px dashed #FFD700;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.train {
+  display: flex;
+  justify-content: space-around;
+  padding: 0.4rem 0;
+  font-size: 1.2rem;
+  border-top: 1px dashed #FFD700;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.train.flip {
+  animation: flipCard 2.6s ease-in-out;
+  transform-origin: center top;
+  perspective: 800px;
+}
+
+.train.arriving {
+  animation: blinkArriving 2.0s ease-in-out infinite;
+}
+
+@keyframes flipCard {
+  0% { transform: rotateX(0deg); opacity: 1; }
+  40% { transform: rotateX(-80deg); opacity: 0.2; }
+  70% { transform: rotateX(10deg); opacity: 1; }
+  100% { transform: rotateX(0); }
+}
+
+@keyframes blinkArriving {
+  0% { opacity: 1; }
+  50% { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+/* --- Alerts / Service Warnings --- */
+.alerts-banner {
+  border: 2px solid #FF4444;
+  background-color: #1a0000;
+  padding: 0.8rem 1rem;
+  margin: 1rem 0;
+  text-align: left;
+}
+
+.alerts-title {
+  color: #FF4444;
+  font-size: 1rem;
+  font-weight: bold;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.5rem;
+  text-align: center;
+  animation: blinkAlert 2s ease-in-out infinite;
+}
+
+.alert-item {
+  color: #FF9900;
+  font-size: 0.95rem;
+  padding: 0.3rem 0;
+  border-top: 1px dashed #FF4444;
+  line-height: 1.4;
+}
+
+.alert-type {
+  color: #FF4444;
+  font-weight: bold;
+}
+
+.alert-lines {
+  color: #FFD700;
+  font-weight: bold;
+}
+
+@keyframes blinkAlert {
+  0%   { opacity: 1; }
+  50%  { opacity: 0.5; }
+  100% { opacity: 1; }
+}
