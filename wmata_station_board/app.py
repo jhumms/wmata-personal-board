@@ -24,23 +24,41 @@ DEFAULT_STATION = config.get("DEFAULT_STATION", "Wiehle-Reston East")
 
 # Load station layout and fallback patching data
 station_df = pd.read_excel(cwd + "/Station_List.xlsx")
-backup_df = pd.read_excel(cwd + "/backup_station.xlsx")
+with open(cwd + "/backup_station.json") as _f:
+    backup_data: dict = json.load(_f)
 
 # Build list of stations for dropdown menu
 station_names = station_df["DestinationName"].dropna().drop_duplicates().sort_values().tolist()
 
 @lru_cache(maxsize=None)
-def get_fallback(line_missing, dest_missing, loc, grp):
-    """Return fallback Line and DestinationName using backup_df if possible."""
-    fallback = backup_df[
-        (backup_df["LocationCode"].astype(str).str.strip().str.upper() == loc) &
-        (backup_df["Group"].astype(str).str.strip() == grp)
-    ]
-    if fallback.empty:
+def get_fallback(line_missing: bool, dest_missing: bool, loc: str, grp: str, line: str = ""):
+    """Return fallback Line and DestinationName using backup_data if possible.
+
+    When line is known, uses line-specific destination (e.g. SV vs OR at a shared station).
+    When line is missing, picks the first line entry for that station/group.
+    """
+    station_entry = backup_data.get(loc, {})
+    if not station_entry:
         return None, None
 
-    fallback_line = fallback.iloc[0]["Line"] if line_missing else None
-    fallback_dest = fallback.iloc[0]["DestinationName"] if dest_missing else None
+    fallback_line = None
+    fallback_dest = None
+    effective_line = line  # the line to use for destination lookup
+
+    if line_missing:
+        effective_line = next(iter(station_entry), None)
+        fallback_line = effective_line
+
+    if dest_missing:
+        if effective_line and effective_line in station_entry:
+            fallback_dest = station_entry[effective_line].get(grp)
+        else:
+            # Unknown line — use the first available entry for this group
+            for groups in station_entry.values():
+                fallback_dest = groups.get(grp)
+                if fallback_dest:
+                    break
+
     return fallback_line, fallback_dest
 
 @lru_cache(maxsize=None)
@@ -124,7 +142,8 @@ def get_predictions():
         if line_missing or dest_missing:
             loc = str(train.get("LocationCode", "")).strip().upper()
             grp = str(train.get("Group", "")).strip()
-            fallback_line, fallback_dest = get_fallback(line_missing, dest_missing, loc, grp)
+            known_line = "" if line_missing else str(train.get("Line", "")).strip()
+            fallback_line, fallback_dest = get_fallback(line_missing, dest_missing, loc, grp, known_line)
 
             if fallback_line:
                 train["Line"] = fallback_line
@@ -143,7 +162,8 @@ def get_predictions():
 
             line = train.get("Line", "UNK")
             group = str(train.get("Group", "0")).strip()
-            label = f"{line} - {train['DestinationName']}"
+            canonical = backup_data.get(location_code, {}).get(line, {}).get(group, train["DestinationName"])
+            label = f"{line} - {canonical}"
 
             if platform not in grouped:
                 grouped[platform] = {}
@@ -161,7 +181,9 @@ def get_predictions():
         for train in filtered:
             line = train.get("Line", "UNK")
             group = str(train.get("Group", "0")).strip()
-            label = f"{line} - {train['DestinationName']}"
+            loc = str(train.get("LocationCode", "")).strip().upper()
+            canonical = backup_data.get(loc, {}).get(line, {}).get(group, train["DestinationName"])
+            label = f"{line} - {canonical}"
 
             if line not in grouped:
                 grouped[line] = {}

@@ -149,7 +149,7 @@
               section.appendChild(title);
 
               Object.entries(platformData).forEach(([line, groups]) => {
-                Object.entries(groups).forEach(([group, labels]) => {
+                Object.entries(groups).sort(([a], [b]) => b.localeCompare(a)).forEach(([group, labels]) => {
                   Object.entries(labels).forEach(([label, trains]) => {
                     flatList.push({ line, group, label, trains });
                   });
@@ -165,7 +165,7 @@
 
             Object.entries(data).forEach(([line, groups]) => {
               if (line === "alerts" || !groups || typeof groups !== "object" || Array.isArray(groups)) return;
-              Object.entries(groups).forEach(([group, labels]) => {
+              Object.entries(groups).sort(([a], [b]) => b.localeCompare(a)).forEach(([group, labels]) => {
                 Object.entries(labels).forEach(([label, trains]) => {
                   flatList.push({ line, group, label, trains });
                 });
