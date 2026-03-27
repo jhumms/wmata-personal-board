@@ -1,2 +1,2 @@
 API_KEY=your_wmata_api_key_here
-DEFAULT_STATION=Wiehle-Reston East
+DEFAULT_STATION=Metro Center

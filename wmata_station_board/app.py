@@ -22,6 +22,17 @@ config = load_config()
 API_KEY = config.get("API_KEY")
 DEFAULT_STATION = config.get("DEFAULT_STATION", "Wiehle-Reston East")
 
+# Known WMATA destination abbreviations → full names
+DEST_NAMES = {
+    "NewCrlton":  "New Carrollton",
+    "Shdy Grv":   "Shady Grove",
+    "Grenbelt":   "Greenbelt",
+    "Huntingtn":  "Huntington",
+    "Franconia":  "Franconia-Springfield",
+    "Lrgo":       "Downtown Largo",
+    "Branch Av":  "Branch Ave",
+}
+
 # Load station layout and fallback patching data
 station_df = pd.read_excel(cwd + "/Station_List.xlsx")
 with open(cwd + "/backup_station.json") as _f:
@@ -174,7 +185,7 @@ def get_predictions():
             grouped[platform][line][group].setdefault(label, []).append({
                 "Line": line,
                 "Car": train["Car"],
-                "Destination": train["DestinationName"],
+                "Destination": DEST_NAMES.get(train["DestinationName"], train["DestinationName"]),
                 "Min": train["Min"]
             })
     else:
@@ -192,7 +203,7 @@ def get_predictions():
             grouped[line][group].setdefault(label, []).append({
                 "Line": line,
                 "Car": train["Car"],
-                "Destination": train["DestinationName"],
+                "Destination": DEST_NAMES.get(train["DestinationName"], train["DestinationName"]),
                 "Min": train["Min"]
             })
 
